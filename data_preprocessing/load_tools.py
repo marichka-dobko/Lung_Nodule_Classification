@@ -98,4 +98,120 @@ def save_to_npy(input_path, folder_output, candidates, subs_id, width_size=32):
                 pass
     np.save(join(folder_output, 'y_train_{}.npy'.format(str(folder_output[-1]))), y_train)
 
-    return 'Done!'
+    return 'Done!'  
+       
+    
+    
+def cropND(img, bounding):
+    start = tuple(map(lambda a, da: a//2-da//2, img.shape, bounding))
+    end = tuple(map(operator.add, start, bounding))
+    slices = tuple(map(slice, start, end))
+    return img[slices]    
+
+
+
+def load_itkfilewithtrucation(filename, upper=200, lower=-200):
+    """"Code for this function is based on code from this repository: https://github.com/junqiangchen/LUNA16-Lung-Nodule-Analysis-2016-Challenge"""
+    
+    # 1,tructed outside of liver value
+    srcitkimage = sitk.Cast(sitk.ReadImage(filename), sitk.sitkFloat32)
+    srcitkimagearray = sitk.GetArrayFromImage(srcitkimage)
+    srcitkimagearray[srcitkimagearray > upper] = upper
+    srcitkimagearray[srcitkimagearray < lower] = lower
+    # 2,get tructed outside of liver value image
+    sitktructedimage = sitk.GetImageFromArray(srcitkimagearray)
+    origin = np.array(srcitkimage.GetOrigin())
+    spacing = np.array(srcitkimage.GetSpacing())
+    sitktructedimage.SetSpacing(spacing)
+    sitktructedimage.SetOrigin(origin)
+    # 3 normalization value to 0-255
+    rescalFilt = sitk.RescaleIntensityImageFilter()
+    rescalFilt.SetOutputMaximum(255)
+    rescalFilt.SetOutputMinimum(0)
+    itkimage = rescalFilt.Execute(sitk.Cast(sitktructedimage, sitk.sitkFloat32))
+    return itkimage
+
+
+def get_cube_from_img(img3d, center, block_size):
+    """"Code for this function is based on code from this repository: https://github.com/junqiangchen/LUNA16-Lung-Nodule-Analysis-2016-Challenge"""
+    # get roi(z,y,z) image and in order the out of img3d(z,y,x)range
+    center_z = center[0]
+    center_y = center[1]
+    center_x = center[2]
+    start_x = max(center_x - block_size / 2, 0)
+    if start_x + block_size > img3d.shape[2]:
+        start_x = img3d.shape[2] - block_size
+    start_y = max(center_y - block_size / 2, 0)
+    if start_y + block_size > img3d.shape[1]:
+        start_y = img3d.shape[1] - block_size
+    start_z = max(center_z - block_size / 2, 0)
+    if start_z + block_size > img3d.shape[0]:
+        start_z = img3d.shape[0] - block_size
+    start_z = int(start_z)
+    start_y = int(start_y)
+    start_x = int(start_x)
+    roi_img3d = img3d[start_z:start_z + block_size, start_y:start_y + block_size, start_x:start_x + block_size]
+    return roi_img3d
+
+
+def load_itk_version2(img_file):
+    itk_img = load_itkfilewithtrucation(img_file, 600, -1000)
+    img_array = sitk.GetArrayFromImage(itk_img)
+
+    origin = np.array(itk_img.GetOrigin())
+    spacing = np.array(itk_img.GetSpacing())
+    
+    return img_array, origin, spacing
+
+
+def train_test_split_D1():
+   
+    # SPLIT NONNODULES
+    negs = '/datagrid/temporary/dobkomar/output_path_32/0/'
+    nonnodules =[os.path.join(negs,f) for f in os.listdir(negs) if os.path.isfile(os.path.join(negs,f))]
+    seriesuid = list(set([ n.split('/0/')[1].split('_')[3] for n in nonnodules]))
+    nonnodules_train, nonnodules_val = [], []
+
+    dict_ser_train, dict_ser_val = {key: 0 for key in seriesuid}, {key: 0 for key in seriesuid}
+    for el in nonnodules:
+        cur_ser =  el.split('/0/')[1].split('_')[3]
+
+        if  dict_ser_train[cur_ser] <= 17:  
+            nonnodules_train.append(el)
+            dict_ser_train[cur_ser] += 1
+
+        if  dict_ser_val[cur_ser] <= 9:  
+            if el not in nonnodules_train:
+                nonnodules_val.append(el)
+                dict_ser_val[cur_ser] += 1
+
+    print(['Nonnodules:',len(nonnodules_train), len(nonnodules_val)])
+    assert len(np.intersect1d(nonnodules_train, nonnodules_val)) == 0
+    
+    train_non = pd.DataFrame(nonnodules_train, columns=['filename'])
+    train_non['class'] = [0 for i in range(len(nonnodules_train))]
+    val_non = pd.DataFrame(nonnodules_val, columns=['filename'])
+    val_non['class'] = [0 for i in range(len(nonnodules_val))]
+
+    train_non.to_csv('/home.stud/dobkomar/data/train_data_0_D1_.csv', index=False)
+    val_non.to_csv('/home.stud/dobkomar/data/val_data_0_D1_.csv', index=False)
+    
+    
+    # SPLIT NODULES
+    poss = '/datagrid/temporary/dobkomar/output_path_32/augmented/' 
+    nodules = [os.path.join(poss,f) for f in os.listdir(poss) if os.path.isfile(os.path.join(poss,f))]
+    all_nodules = list(set([x.split('aug_10/')[1].split('_')[0] for x in nodules]))
+    nod_train, nod_val = all_nodules[:1200] , all_nodules[1200:]
+    nodules_train = [x for x in nodules if x.split('augmented/')[1].split('_')[0]  in nod_train]
+    nodules_val = [x for x in nodules if x.split('augmented/')[1].split('_')[0]  in nod_val]
+    
+    train = pd.DataFrame(nonnodules_train+nodules_train, columns=['filename'])
+    train['index'] = [0 for i in range(len(nonnodules_train))]+[1 for i in range(len(nodules_train))]
+
+    val = pd.DataFrame(nonnodules_val+nodules_val, columns=['filename'])
+    val['index'] = [0 for i in range(len(nonnodules_val))]+[1 for i in range(len(nodules_val))]
+    
+    train.to_csv('/home.stud/dobkomar/data/train_data.csv', index=False)
+    val.to_csv('/home.stud/dobkomar/data/val_data.csv', index=False)
+    
+    return "saved!"

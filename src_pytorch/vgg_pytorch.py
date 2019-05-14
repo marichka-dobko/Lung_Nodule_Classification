@@ -2,7 +2,9 @@
 This code is based on the script from pytorch framework
 Source: https://github.com/pytorch/vision/blob/master/torchvision/models/vgg.py
 """
-
+import torch.nn as nn
+import torch.utils.model_zoo as model_zoo
+import math
 
 __all__ = [
     'VGG', 'vgg11', 'vgg11_bn', 'vgg16', 'vgg16_bn'

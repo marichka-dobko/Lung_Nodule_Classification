@@ -9,7 +9,7 @@ import torch.utils.data as utils
 
 class CNNT4(nn.Module):
     def __init__(self, num_classes=2):
-        super(ConvNetT4, self).__init__()
+        super(CNNT4, self).__init__()
         self.layer1 = nn.Sequential(
             nn.Conv2d(1, 6, kernel_size=5, stride=1),
             nn.ReLU(),
@@ -37,7 +37,7 @@ class CNNT4(nn.Module):
     
 class CNNT5(nn.Module):
     def __init__(self, num_classes=2):
-        super(ConvNetT4, self).__init__()
+        super(CNNT5, self).__init__()
         self.layer1 = nn.Sequential(
             nn.Conv2d(1, 8, kernel_size=5, stride=1),
             nn.ReLU(),
@@ -85,7 +85,7 @@ class LeNet3D(nn.Module):
 
 class CNNT4_3D(nn.Module):
     def __init__(self):
-        super(ConvNet3D, self).__init__()
+        super(CNNT4_3D, self).__init__()
         self.conv1 = nn.Conv3d(1, 6, kernel_size=(5, 5, 5))
         self.pool = nn.MaxPool3d(2, 2)
         self.conv2 = nn.Conv3d(6, 16, kernel_size=(5, 5, 5))
@@ -107,7 +107,7 @@ class CNNT4_3D(nn.Module):
 
 class CNNT5_3D(nn.Module):
     def __init__(self):
-        super(ConvNet3D, self).__init__()
+        super(CNNT5_3D, self).__init__()
         self.conv1 = nn.Conv3d(1, 8, kernel_size=(5, 5, 5))
         self.pool = nn.MaxPool3d(2, 2)
         self.conv2 = nn.Conv3d(6, 16, kernel_size=(5, 5, 5))
