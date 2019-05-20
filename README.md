@@ -53,7 +53,7 @@ radiologists are considered irrelevant and thus, are not included. The organizer
 of the challenge extracted 1,186 lung nodules from LIDC-IDRI images and formed a
 data set from these nodules as positive candidates.
 
-<p align="center"> <img src="schemes/CTscansExmp.png" width="800px" height="120px"/></p>
+<p align="center"> <img src="schemes/CTscansExmp.png" width="800px" height="150px"/></p>
 
 
 The regions of interest for us are 3-D voxels containing nodules, this is why we need to cut out chunks from
@@ -69,7 +69,7 @@ To work with two dimensional data we need to annotate as positive class only tho
 To be certain that no incorrectly labeled samples are present in our training dataset,
 we use only middle slices to represent a volumetric candidate in two dimensions.
 
-<p align="center"> <img src="schemes/TumorsExmp.png" width="800px" height="120px"/></p>
+<p align="center"> <img src="schemes/TumorsExmp.png" width="800px" height="150px"/></p>
 
 
 
